@@ -1,60 +1,47 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include "main.h"
+#include "monty.h"
 
-char *arguments = NULL;
+vars var;
 
 /**
-* main - function
-*
-* @argv: the chaine of chaine
-* @argc: the int
-* Return: Always 0.
-*/
-
-int main(int argc, char **argv)
+ * main - Start LIFO, FILO program
+ * @ac: Number of arguments
+ * @av: Pointer containing arguments
+ * Return: 0 Success, 1 Failed
+ */
+int main(int ac, char **av)
 {
-	char *filename, line[BUF_SIZE + 1], *code = NULL;
-	int nbLine = 1;
-	FILE *fp;
-	stack_t *stack = NULL;
-	linefile_t *op = NULL;
+	char *opcode;
 
-	if (argc != 2)
+	if (ac != 2)
 	{
-		fprintf(stderr, "%s", "USAGE: monty file\n");
-		exit(EXIT_FAILURE);
+		fprintf(stderr, "USAGE: monty file\n");
+		return (EXIT_FAILURE);
 	}
 
-	filename = argv[1];
-	fp = fopen(filename, "r");
-	if (fp == NULL)
+	if (start_vars(&var) != 0)
+		return (EXIT_FAILURE);
+
+	var.file = fopen(av[1], "r");
+	if (!var.file)
 	{
-		fprintf(stderr, "%s", "Error: Can't open file <file>\n");
-		exit(EXIT_FAILURE);
+		fprintf(stderr, "Error: Can't open file %s\n", av[1]);
+		free_all();
+		return (EXIT_FAILURE);
 	}
 
-	arguments = NULL;
-	while (fgets(line, LINE, fp) != NULL)
+	while (getline(&var.buff, &var.tmp, var.file) != EOF)
 	{
-		op  = get_opcode_and_arg(line);
-		arguments = op->arg;
-		/*code = strtok(line, " \t\r\v\f\n");*/
-		/*printf("co: %s op:  %s \n",code,opcode_arg->opcode);*/
-		if (op->opcode != NULL && op->opcode[0] != '#' && op->opcode[0] != '\n')
-			get_opcode(&stack, nbLine, op->opcode);
-		/*_puts(line);*/
-		nbLine++;
+		opcode = strtok(var.buff, " \r\t\n");
+		if (opcode != NULL)
+			if (call_funct(&var, opcode) == EXIT_FAILURE)
+			{
+				free_all();
+				return (EXIT_FAILURE);
+			}
+		var.line_number++;
 	}
 
-	UNUSED(stack);
-	UNUSED(code);
-	UNUSED(arguments);
-	free_stack_t(stack);
-	fclose(fp);
-	exit(EXIT_SUCCESS);
+	free_all();
+
+	return (EXIT_SUCCESS);
 }
